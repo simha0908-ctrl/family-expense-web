@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>__TITLE__</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+         background:#faf9f5; font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif; }
+  .box { background:#fff; border:1px solid #e7e5df; border-radius:14px; padding:28px 24px;
+         width:min(360px,90vw); box-shadow:0 8px 30px rgba(0,0,0,.06); text-align:center; }
+  h1 { font-size:18px; margin:0 0 4px; color:#2b2a26; }
+  p { font-size:13px; color:#8a877f; margin:0 0 18px; }
+  input { width:100%; padding:12px 14px; font-size:16px; border:1px solid #d9d6cf;
+          border-radius:9px; outline:none; }
+  input:focus { border-color:#b59a6a; }
+  button { margin-top:12px; width:100%; padding:12px; font-size:15px; font-weight:600; color:#fff;
+           background:#b59a6a; border:none; border-radius:9px; cursor:pointer; }
+  button:active { opacity:.85; }
+  .err { color:#c0392b; font-size:13px; margin-top:10px; min-height:18px; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>🔒 __TITLE__</h1>
+  <p>비밀번호를 입력하세요</p>
+  <input id="pw" type="password" autocomplete="off" placeholder="비밀번호" autofocus>
+  <button id="go">열기</button>
+  <div class="err" id="err"></div>
+</div>
+<script>
+const SALT="__SALT__", IV="__IV__", ITER=__ITER__, PAYLOAD="__PAYLOAD__";
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function unlock(){
+  const pw=document.getElementById("pw").value;
+  const err=document.getElementById("err");
+  err.textContent="";
+  try{
+    const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
+    const key=await crypto.subtle.deriveKey(
+      {name:"PBKDF2",salt:b64(SALT),iterations:ITER,hash:"SHA-256"},
+      km,{name:"AES-GCM",length:256},false,["decrypt"]);
+    const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(IV)},key,b64(PAYLOAD));
+    const html=new TextDecoder().decode(pt);
+    document.open();document.write(html);document.close();
+  }catch(e){
+    err.textContent="비밀번호가 올바르지 않습니다.";
+  }
+}
+document.getElementById("go").addEventListener("click",unlock);
+document.getElementById("pw").addEventListener("keydown",e=>{if(e.key==="Enter")unlock();});
+</script>
+</body>
+</html>
